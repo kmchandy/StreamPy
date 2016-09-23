@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+<head><title>Introduction to Assembling Parts</title></head>
+<style type="text/css">
+body {
+  background-color: white ;
+  color: black ;
+  font-family: Arial, Helvetica, sans-serif ;
+}
+.boxed {
+  border: 4px solid green ;
+}
+</style>
+<body>
+
+<center><h1>Introduction to Assembling Parts</h1></center>
+
+<h3>Streams</h3>
+
+<p> A stream is a sequence of values. The only way in which a stream
+can be modified is that values can be appended to the end of a
+stream.An example of a stream is a sequence of measurements made by a
+sensor; as time progresses the sensor may make additional measurements
+and append values containing the newly measured values. The sensor
+cannot retract or modify values that it has sent. </p>
+
+<p> The type of a stream can be specified, e.g., integers, strings, or
+some class, or the type can be left unspecified. We begin with streams
+of unspecified types and introduce types later. You create a stream
+<i>s</i> with name <i>stream_name</i> by executing the statement:
+<div class="boxed"><pre> <code>
+s = Stream("stream_name")
+  </code> </pre></div>
+  
+Values are appended to a stream in exactly the same way as values are
+appended to a list, i.e., by using <i>append</i> to append a single
+value and <i>extend</i> to extend the list by a list of values.<p>
+</p>
+
+<p> The following code appends j to stream <code>x</code> every 0.1
+seconds for j in <code>range(10)</code>.
+<div class="boxed">
+<pre> <code>for j in range(10):
+    x.append(j)
+    time.sleep(0.1)</code> </pre></div>
+</p>
+ 
+<h3>Stream Processing</h3>
+
+<p> Streams are processed by stream-processing components or
+<b>parts</b>. You build a part by assigning arguments to the
+parameters of a function called a <b>template</b> function.  A
+template, like any other function, has a name, parameters and
+a function definition (body). A parameter of a template is
+one of the following: an <b>input</b>, an <b>output</b> or a
+<b>field</b>.  The function definition (function body) of a template
+is specified by a string, called <i>assembly</i>, which
+defines how the part is built by assembling subparts or programs.  A
+template is specified by a JSON string with the
+structure:
+    
+<div class="boxed"><pre> <code>
+{
+    "template_name": string,
+    "inputs": list of input parameters,
+    "outputs": list of output parameters,
+    "fields": list of string parameters,
+    "assembly": ...,
+}
+</code> </pre></div>
+  
+The schema for <i>assembly</i> is given later.  </p>
+
+<p>
+The arguments assigned to input and output parameters must be streams.
+The arguments assigned to field parameters can be of any type. </p>
+
+
+<p> The following is a schematic for a template called
+<i>monitor</i> with input parameters <i>t</i> and <i>p</i>, an output
+parameter, <i>a</i>, and a field parameter, <i>v</i>.  
+
+<figure>
+  <img src="assembly_fig1.jpg" alt="Example Part" width="304" height="228">
+</figure>
+
+We draw input parameters as incoming vertical arrows, fields as
+incoming horizontal arrows, and outputs as outgoing vertical arrows.
+</p>
+
+<p>
+The string that specifies the <i>monitor</i> template is:
+<code><pre><div>
+{
+    "template_name": "monitor",
+    "inputs": ["t", "p"],
+    "outputs": ["a"],
+    "fields": ["v"],
+    "assembly": ...,
+}
+</code> </pre></div>
+We will look at the <i>assembly</i> section later.
+</p>
+
+<p> Given streams <i>temperature_stream</i>, <i>pressure_stream</i>
+and <i>alerts_stream</i>, and a value <i>threshold</i>, you can create
+a part from this template by assigning arguments to its parameters; for
+example, assign <i>temperature_stream</i> to <i>t</i>,
+<i>pressure_stream</i> to <i>p</i>, <i>alerts_stream</i> to <i>a</i>
+and <i>threshold</i> to <i>v</i>. This is shown in the schematic
+below.  </p>
+
+<figure>
+  <img src="assembly_fig1_2.jpg" alt="Example Part" width="304" height="228">
+</figure>
+
+
+
+<p>A stream assigned to an input parameter of the template is called
+an input stream of the part built with the function. Likewise, a
+stream assigned to an output parameter is called an output stream. A
+part may read, but not modify, its input streams. A part may modify
+its output streams. The same stream can be an input stream for
+multiple parts; however, a stream can be an output stream for at most
+one part. Parts that process streams can be created in different
+ways. We begin by specifying parts using JSON files. </p>
+
+<h2> Assembly </h2>
+
+<p>You can specify an <i>assembly</i> --- the body of
+a template --- either as:
+
+<ol>
+  <li> An encapsulation of programs.
+  </li>
+  <li> An assembly of other parts </li>
+</ol>
+</p>
+
+<h3>Encapsulating programs</h3>
+
+<p> Programs in standard libraries typically operate on standard data
+structures such as integers, lists or arrays. An encapsulation method
+specifies how program operations on standard data structures are
+converted to a part's operation on streams. You can create a template
+by specifying an encapsulation function and its arguments.
+Typically, you choose an encapsulation function from a built-in
+library. (You can also create your own encapsulation functions and add
+them to the library.)  The fields of the encapsulation function
+include names of the standard (non-streaming) programs that are
+encapsulated to obtain stream-processing parts.</p>
+
+<h4>Example of Program Encapsulation</h4>
+An example of a built-in
+encapsulation function is <i>map</i>. One of the fields of <i>map</i>
+is called <i>function</i>. An example of a specification of a template
+called <i>simple_map</i> is:
+<div class="boxed"><pre> <code>
+{
+    "template": "simple_map",
+    "inputs": ["in"],
+    "outputs": ["out"],
+    "fields": ["function"],
+    "assembly": "map"
+}
+</code> </pre></div>
+A part is specified by a template and its parameters. For the template
+<i>simple_map</i> if streams
+<i>x</i> and <i>y</i> are assigned to parameters <i>in</i> and
+<i>out</i> respectively, and a function <i>f</i> is assigned to
+<i>function</i>, then <i>y[n] = f(x[n])</i> where <i>x[n]</i> and
+<i>y[n]</i>
+are the <i>n</i>-th element of <i>x</i> and <i>y</i> respectively.
+
+
+
+<h3>Assembling templates</h3>
+
+<p> You can assemble templates to build bigger templates as in
+functional composition. You use a template called "assembly". The
+assembled template is called the <i>composed template</i> and the part
+created by the assembled template is called the <i>composed part</i>. The
+parts created by the component templates are called
+<i>subparts</i>. You assemble templates by specifying:
+
+<ol>
+  <li><b>subparts</b>: list of names and templates of subparts. </li>
+  <li><b>externals</b>: relationships between parameters of the
+  composed part and its subparts. </li>
+  <li><b>internals</b>: relationships between input and output
+  parameters of the subparts. </li>
+</ol>
+
+The format for the "assembly" section of a template created by
+assembling other templates is:
+<div class="boxed"><pre> <code>
+{
+    "assembly": "composition",
+    "subparts": list of [subpart_name, subpart_template],
+    "externals": list of [composed_part_parameter, subpart_name, subpart_parameter]
+    "internals": list of [subpart_name, subpart_output, subpart_name, subpart_input]
+}
+</code> </pre></div>
+Each element of <i>externals</i> defines the equivalence of a
+parameter of the composed part and a parameter of a subpart. For
+example, <code>["U", "A", "u"]</code> defines parameter <i>u</i>
+of subpart <i>A</i> to be the same as parameter <i>U</i> of
+the composed part. Each element of <i>internals</i> defines the
+equivalence of an output of a subpart and the input of a subpart. For
+example, <code>["A", "x", "C", "r"]</code> defines input parameter "r"
+of subpart "C" to be equal to output parameter "x" of subpart "A".
+</p>
+
+<h3>Examples of template assembly</h3>
+<p> The following schematic shows an assembled part with input sockets
+<i>U</i> and <i>V</i>, output sockets <i>X</i>, <i>W</i> and <i>Y</i>,
+and field <i>F</i>. The assembly has subparts, <i>A</i>, <i>B</i>, and
+<i>C</i>. Subparts <i>A</i> and <i>B</i> are built using a template
+called <i>map</i>; subpart <i>A</i> is built using a template,
+<i>monitor</i>. Subpart <i>A</i> has input socket <i>u</i>, output
+socket <i>x</i> and no fields; <i>B</i> has input socket <i>v</i>,
+output socket <i>y</i> and field <i>f</i>; and <i>C</i> has input
+sockets <i>r</i> and <i>s</i>, output socket <i>w</i> and field
+<i>f</i>.  A line between two sockets indicates that the same stream
+is assigned to both sockets. For example, the stream assigned to
+socket <i>U</i> of the assembled part is the same as that assigned to
+socket <i>u</i> of subpart <i>A</i>. Likewise, the streams assigned to
+output socket <i>X</i> of the assembled part is the same as that
+assigned to output socket <i>x</i> of subpart <i>A</i> and input
+socket <i>r</i> of subpart <i>C</i>. The relationships between the
+other sockets is similar.
+
+
+<figure>
+  <img src="assembly_fig2.jpg" alt="Example Part" width="304" height="228">
+</figure>
+</p>
+
+<div class="boxed"><pre> <code>
+{
+    "assembly": "composition",
+    "subparts": [["A", "map"],
+                 ["B", "map"],
+                 ["C", "monitor"]],
+    "externals": [["U", "A", "u"],
+                  ["V", "B", "v"],
+                  ["W", "C", "w"],
+                  ["X", "A", "x"],
+                  ["Y", "B", "y"],
+                  ["F", "B", "f"],
+                  ["F", "C", "f"]],
+    "internals": [["A", "x", "C", "r"],
+                  ["B", "y", "C", "s"]]
+}
+</code> </pre></div>
+
+
+<h4>Example: Assembling the simple map and sliding-window templates</h4>
+
+<p>A <i>simple_sliding_window</i> template has a single input, <i>in</i>, a
+single output , <i>out</i>, and three fields, <i>function</i>,
+<i>window_size</i>, and <i>step_size</i>.  The part built by this
+template outputs <i>function</i> applied to an initial slice of length
+<i>window_size</i> of the input stream, and then moves the window
+forward by <i>step_size</i>, and repeats the operation. For example,
+if <i>function</i> is <i>sum</i>, and <i>window_size</i>, and
+<i>step_size</i> are both 2, then the output is the sum of consecutive
+pairs of the input stream.  </p>
+
+<p>We assemble the <i>simple_map</i> and <i>simple_sliding_window</i> templates to
+create a <i>simple_map_sliding_window</i> template as shown in the
+diagram and the specification in which <i>f</i> and <i>g</i> have the
+simple map and simple sliding window templates.  </p>
+
+<div class="boxed"><pre> <code>
+{
+    "template": "simple_map_sliding_window",
+    "inputs": ["in"],
+    "outputs": ["out"],
+    "fields": ["map_function", "window_function", "window_size", "step_size"],
+    "assembly": "composition",
+    "subparts": [["f", "simple_map"],
+                 ["g", "simple_sliding_window"]],
+    "externals": [["in", "f", "in"],
+                  ["out", "g", "out"],
+                  ["map_function", "f", "function"],
+                  ["window_function", "g", "function"],
+                  ["window_size", "g", "window_size"],
+                  ["step_size", "g", "step_size"]],
+    "internals": [["f", "out", "g", "in"]]
+}
+</code> </pre></div>
+  
+
+<figure>
+  <img src="assembly_fig3.jpg" alt="Example Part" width="304" height="228">
+</figure>
+</p></p>
+
+<h4>Example: A simple_test template</h4>
+<p> Next, let's create a template by assembling the templates shown in
+the specification and figure below.
+The template <i>command_line_input</i> creates a part that takes inputs
+from the command line and outputs them on its single ouput,
+<i>out</i>.
+The <i>print_to_screen</i> template has a single input port, <i>in</i>
+and no fields. It prints the values on its input stream as the values
+become available. The composed template takes
+inputs from the command line, executes a function on the inputs and
+prints results to the screen.
+</p>
+
+<figure>
+  <img src="assembly_fig4.jpg" alt="Example Part" width="304" height="228">
+</figure>
+</p></p>
+
+<div class="boxed"><pre> <code>
+{
+    "template": "simple_test",
+    "inputs": "[]",
+    "outputs": "[]",
+    "fields": ["map_function", "window_function", "window_size", "step_size"],
+    "assembly": "composition",
+    "subparts": [["input", "command_line_input"],
+                 ["f", "simple_map_sliding_window"],
+                 ["output", "print_to_screen"]],
+    "externals": [["map_function", "f", "map_function"],
+                  ["window_function", "f", "window_function"],
+                  ["window_size", "f", "window_size"],
+                  ["step_size", "f", "step_size"]],
+    "internals": [["input", "out", "f", "in"],
+                  ["f", "out", "output", "in"]]
+}
+</code> </pre></div>
+ 
+<h3>Template parameters</h3>
+
+<p>Template parameters are specified in a JSON string that specifies
+parameter names and their values. An example of parameters for the
+<i>simple_test</i> template is:
+
+<div class="boxed"><pre> <code>
+{
+    "map_function": "square",
+    "window_function": "sum",
+    "window_size": "2",
+    "step_size": "2"
+}
+</code> </pre></div>
+where "square" and "sum" are names of functions. You create a part by
+specifying a template and its parameters.
+</p>
+
+
+<h3>Adaptors</h3>
+
+<p> A template may have components that acquire data from sensors
+and other sources outside the template and create streams. Likewise, a
+template may have components that read streams and generate data
+for actuators and other clients outside the templates. The components that
+interact with objects outside StreamPy are called
+<i>adaptors</i>. For example, <i>input</i> and <i>output</i> in
+<i>simple_one</i> are an input and output adaptor.  StreamPy has a
+small library of adaptors, and we are adding more adaptors to the
+library.
+
+</p>
+
+
+
+<h2>The template and part databases</h2>
+
+<p>
+You store templates in the template database, <i>templates_db</i> and
+parts in the part database, <i>parts_db</i>. These databases are
+currently implemented using a simple Python database called
+<i>TinyDB</i> which is ideal for storing JSON strings. The contents of
+the databases are stored in files when you finish a programming
+session; you reload the files into the databases when you start your
+next session. Both templates and parts have an optional field called
+<i>description</i> which is a text string that can be used for
+searching the databases. </p>
+
+<p>The program that assembles templates looks up for components in the
+templates database. Later, we will look at functions that check
+templates to ensure that all fields have been specified and that
+internal connections are correct. You can put a template into the
+database even if it is incomplete or incorrect. You will get an error
+message if you try to create a part with an incorrect template.
+Partial templates can be helpful as you develop complex templates.</p>
+
+<p>A part in the parts database has a unique name. You specify a part
+in the database by its name, template and parameters. For example, an
+entry in the parts database for a simple_test part called
+<i>simple_one</i> is:
+
+<div class="boxed"><pre> <code>
+{
+    "part": "simple_one",
+    "template": "simple_test",
+    "map_function": "square",
+    "window_function": "sum",
+    "window_size": "2",
+    "step_size": "2"
+}
+</code> </pre></div>
+
+The functions "square" and "sum" must be defined in the Python
+function repository. Details about function names are given later.
+</p>
+
+<p>A part in the database can be incomplete or incorrect. Later we
+will look at functions that check parts.
+</p>
+
+
+<h2>Running assembled programs</h2>
+
+<p> A <i>closed part</i> is one without input and output streams;
+<i>simple_one</i> is an example. You can create and run a closed part
+by using the <i>run_part</i> function:
+
+<div class="boxed"><pre> <code>
+python run_part part_name
+</code> </pre></div>
+
+</p>
+
+
+
+<h4>Multiple processes</h4>
+
+<p>The command: <div class="boxed"><pre>
+<code> python multiprocess part_name </code> </pre></div>
+executes a program in which each subpart within the specified part is
+executed as a separate process. For example, when the command
+specifies the part, 
+<i>simple_one</i>, its subparts <i>input</i>, <i>f</i> and
+<i>output</i> are executed as separate processes. Only the top-level
+subparts are executed as separate processes. For example, even though
+the template for <i>f</i> is composed of <i>simple_map</i> and
+<i>simple_window</i>, these components of <i>f</i> are not executed
+within separate processes. </p>
+
+<p>The processes are both created and started by the multiprocess
+command.</p>
+
+<h4>Distributed Computing</h4>
+
+<p> StreamPy processes on different computers communicate with each
+other using adaptors. A simple adaptor in the adaptor library connects
+a stream generated in one computer to a stream that is read in another
+computer. The adaptors connects the streams through APMQ queues, such
+as RabbitMQ queues. StreamPy does not provide mechanisms for managing
+multiple processes; instead we use MQ, Apache Storm or Apache Spark.
+</p>
+
+
+
+</body>
+</html>
+
